@@ -1,0 +1,12 @@
+{
+  "name": "nextjs-resilience-workshop",
+  "version": "1.0.0",
+  "description": "Workshop for building resilient Next.js applications",
+  "scripts": {
+    "exercise": "node scripts/run-exercise.js",
+    "solution": "node scripts/run-solution.js",
+    "mock-api": "node scripts/mock-api.js"
+  },
+  "author": "",
+  "license": "MIT"
+}
