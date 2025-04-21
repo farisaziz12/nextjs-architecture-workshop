@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mock API Control Dashboard</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f7f8fa;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #0070f3;
+      padding-bottom: 10px;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    .control-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    input[type="checkbox"] {
+      margin-right: 8px;
+    }
+    .value-display {
+      display: inline-block;
+      background: #f0f0f0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-left: 10px;
+    }
+    button {
+      background-color: #0070f3;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:hover {
+      background-color: #0060df;
+    }
+    .events {
+      height: 200px;
+      overflow-y: auto;
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .event {
+      margin-bottom: 6px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mock API Control Dashboard</h1>
+  
+  <div class="card">
+    <h2>Chaos Controls</h2>
+    
+    <div class="control-group">
+      <label for="failureRate">
+        Failure Rate: <span id="failureRateValue" class="value-display">20%</span>
+      </label>
+      <input type="range" id="failureRate" min="0" max="1" step="0.05" value="0.2">
+    </div>
+    
+    <div class="control-group">
+      <label for="latencyMin">
+        Minimum Latency: <span id="latencyMinValue" class="value-display">100ms</span>
+      </label>
+      <input type="range" id="latencyMin" min="0" max="2000" step="50" value="100">
+    </div>
+    
+    <div class="control-group">
+      <label for="latencyMax">
+        Maximum Latency: <span id="latencyMaxValue" class="value-display">800ms</span>
+      </label>
+      <input type="range" id="latencyMax" min="0" max="5000" step="100" value="800">
+    </div>
+    
+    <div class="control-group">
+      <label>
+        <input type="checkbox" id="timeout"> Simulate Timeouts
+      </label>
+    </div>
+    
+    <div class="control-group">
+      <label>
+        <input type="checkbox" id="malformedData"> Return Malformed Data
+      </label>
+    </div>
+    
+    <button id="resetButton">Reset to Defaults</button>
+  </div>
+  
+  <div class="card">
+    <h2>Event Log</h2>
+    <div id="events" class="events"></div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Connect to socket
+    const socket = io();
+    
+    // DOM elements
+    const failureRateInput = document.getElementById('failureRate');
+    const failureRateValue = document.getElementById('failureRateValue');
+    const latencyMinInput = document.getElementById('latencyMin');
+    const latencyMinValue = document.getElementById('latencyMinValue');
+    const latencyMaxInput = document.getElementById('latencyMax');
+    const latencyMaxValue = document.getElementById('latencyMaxValue');
+    const timeoutCheckbox = document.getElementById('timeout');
+    const malformedDataCheckbox = document.getElementById('malformedData');
+    const resetButton = document.getElementById('resetButton');
+    const eventsContainer = document.getElementById('events');
+    
+    // Update settings on the server
+    function updateSettings() {
+      const settings = {
+        failureRate: parseFloat(failureRateInput.value),
+        latencyMin: parseInt(latencyMinInput.value),
+        latencyMax: parseInt(latencyMaxInput.value),
+        timeout: timeoutCheckbox.checked,
+        malformedData: malformedDataCheckbox.checked
+      };
+      
+      fetch('/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+      
+      logEvent(`Settings updated: ${JSON.stringify(settings)}`);
+    }
+    
+    // Log events to the UI
+    function logEvent(message) {
+      const event = document.createElement('div');
+      event.className = 'event';
+      event.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      eventsContainer.prepend(event);
+    }
+    
+    // Update UI from settings
+    function updateUI(settings) {
+      failureRateInput.value = settings.failureRate;
+      failureRateValue.textContent = `${(settings.failureRate * 100).toFixed(0)}%`;
+      
+      latencyMinInput.value = settings.latencyMin;
+      latencyMinValue.textContent = `${settings.latencyMin}ms`;
+      
+      latencyMaxInput.value = settings.latencyMax;
+      latencyMaxValue.textContent = `${settings.latencyMax}ms`;
+      
+      timeoutCheckbox.checked = settings.timeout;
+      malformedDataCheckbox.checked = settings.malformedData;
+    }
+    
+    // Fetch initial settings
+    fetch('/settings')
+      .then(res => res.json())
+      .then(settings => {
+        updateUI(settings);
+        logEvent('Dashboard initialized');
+      });
+    
+    // Event listeners
+    failureRateInput.addEventListener('input', () => {
+      failureRateValue.textContent = `${(failureRateInput.value * 100).toFixed(0)}%`;
+    });
+    
+    latencyMinInput.addEventListener('input', () => {
+      latencyMinValue.textContent = `${latencyMinInput.value}ms`;
+      // Ensure min doesn't exceed max
+      if (parseInt(latencyMinInput.value) > parseInt(latencyMaxInput.value)) {
+        latencyMaxInput.value = latencyMinInput.value;
+        latencyMaxValue.textContent = `${latencyMaxInput.value}ms`;
+      }
+    });
+    
+    latencyMaxInput.addEventListener('input', () => {
+      latencyMaxValue.textContent = `${latencyMaxInput.value}ms`;
+      // Ensure max isn't less than min
+      if (parseInt(latencyMaxInput.value) < parseInt(latencyMinInput.value)) {
+        latencyMinInput.value = latencyMaxInput.value;
+        latencyMinValue.textContent = `${latencyMinInput.value}ms`;
+      }
+    });
+    
+    failureRateInput.addEventListener('change', updateSettings);
+    latencyMinInput.addEventListener('change', updateSettings);
+    latencyMaxInput.addEventListener('change', updateSettings);
+    timeoutCheckbox.addEventListener('change', updateSettings);
+    malformedDataCheckbox.addEventListener('change', updateSettings);
+    
+    resetButton.addEventListener('click', () => {
+      const defaultSettings = {
+        failureRate: 0.2,
+        latencyMin: 100,
+        latencyMax: 800,
+        timeout: false,
+        malformedData: false
+      };
+      
+      updateUI(defaultSettings);
+      
+      fetch('/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(defaultSettings)
+      });
+      
+      logEvent('Reset to defaults');
+    });
+    
+    // Socket events
+    socket.on('connect', () => {
+      logEvent('Connected to server');
+    });
+    
+    socket.on('settings-updated', (settings) => {
+      updateUI(settings);
+      logEvent('Settings updated from server');
+    });
+    
+    socket.on('disconnect', () => {
+      logEvent('Disconnected from server');
+    });
+  </script>
+</body>
+</html>

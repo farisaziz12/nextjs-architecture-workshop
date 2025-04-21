@@ -1,5 +1,5 @@
 {
-  "name": "nextjs-resilience-workshop",
+  "name": "nextjs-architecture-workshop",
   "version": "1.0.0",
   "description": "Workshop for building resilient Next.js applications",
   "scripts": {
@@ -8,5 +8,9 @@
     "mock-api": "node scripts/mock-api.js"
   },
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  }
 }
