@@ -2,9 +2,9 @@
 
 ## 🚀 Overview
 
-This repository contains a series of exercises and solutions for implementing resilience patterns in Next.js applications. You'll work with a fully functional e-commerce application, "ResilioStore," improving its resilience against various failure scenarios.
+This repository contains a series of exercises and solutions for implementing resilience, performance, and observability patterns in Next.js applications. You'll work with different web applications, each facing unique challenges that require specific architectural improvements.
 
-Each exercise focuses on a specific resilience pattern, with both starter code and complete solutions provided.
+Each exercise focuses on a distinct pattern to address real-world problems, with both starter code and complete solutions provided.
 
 ## 🗂 Repository Structure
 
