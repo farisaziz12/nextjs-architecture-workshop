@@ -24,7 +24,14 @@ console.log(`Starting Solution ${solutionNum}: ${getSolutionName(solutionNum)}..
 // Run the solution Next.js app
 try {
   process.chdir(solutionPath);
-  child_process.execSync('npx next dev -p 3000', { stdio: 'inherit' });
+  
+  if (solutionNum === '03') {
+    console.log('Building and starting solution 03 in production mode...');
+    child_process.execSync('npx next build', { stdio: 'inherit' });
+    child_process.execSync('npx next start -p 3000', { stdio: 'inherit' });
+  } else {
+    child_process.execSync('npx next dev -p 3000', { stdio: 'inherit' });
+  }
 } catch (error) {
   console.error('Error running solution:', error);
 }
@@ -33,14 +40,9 @@ try {
 function getSolutionName(num) {
   const solutionMap = {
     '01': 'circuit-breaker',
-    '02': 'retry-pattern',
-    '03': 'timeout-pattern',
-    '04': 'error-boundaries',
-    '05': 'dynamic-imports',
-    '06': 'fallback-ui',
-    '07': 'data-caching',
-    '08': 'isr-pattern',
-    '09': 'chaos-testing'
+    '02': 'timeout-pattern',
+    '03': 'error-boundaries',
+    '04': 'query-criticality',
   };
   
   return solutionMap[num] || 'unknown-solution';

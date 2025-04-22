@@ -24,7 +24,13 @@ console.log(`Starting Exercise ${exerciseNum}: ${getExerciseName(exerciseNum)}..
 // Run the exercise Next.js app
 try {
   process.chdir(exercisePath);
-  child_process.execSync('npx next dev -p 3000', { stdio: 'inherit' });
+  if (exerciseNum === '03' || exerciseNum === '04') {
+    console.log('Running build mode for Exercise 03...');
+    child_process.execSync('npx next build', { stdio: 'inherit' });
+    child_process.execSync('npx next start -p 3000', { stdio: 'inherit' });
+  } else {
+    child_process.execSync('npx next dev -p 3000', { stdio: 'inherit' });
+  }
 } catch (error) {
   console.error('Error running exercise:', error);
 }
@@ -35,11 +41,7 @@ function getExerciseName(num) {
     '01': 'circuit-breaker',
     '02': 'timeout-pattern',
     '03': 'error-boundaries',
-    '04': 'dynamic-imports',
-    '05': 'fallback-ui',
-    '06': 'data-caching',
-    '07': 'isr-pattern',
-    '08': 'chaos-testing'
+    '04': 'query-criticality',
   };
   
   return exerciseMap[num] || 'unknown-exercise';

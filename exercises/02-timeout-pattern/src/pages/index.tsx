@@ -46,7 +46,6 @@ export default function Home() {
     queryFn: async () => {
       return await apiFetcher({
         url: `/api/proxy/transactions?quantity=${QUANTITY}`,
-        errorTag: "GetTransactionsError",
       });
     },
   });
@@ -190,16 +189,15 @@ export default function Home() {
 
 export const getServerSideProps = async () => {
   const queryClient = new QueryClient();
-  const prefetch = createPrefetch(queryClient, 2_000);
+  const prefetchHandler = createPrefetch(queryClient, 2_000);
 
-  await prefetch.criticalQuery(["transactions", QUANTITY], () =>
+  await prefetchHandler.prefetch(["transactions", QUANTITY], () =>
     apiFetcher({
       url: `http://localhost:3000/api/proxy/transactions?quantity=${QUANTITY}`,
-      errorTag: "GetTransactionsError",
     })
   );
 
-  const dehydratedState = prefetch.dehydrate();
+  const dehydratedState = prefetchHandler.dehydrate();
 
   return {
     props: {

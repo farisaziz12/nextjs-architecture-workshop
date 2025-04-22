@@ -21,13 +21,29 @@ let settings = {
   latencyMin: 100,
   latencyMax: 800,
   timeout: false,
-  malformedData: false
+  malformedData: false,
+  criticalEndpointFailure: false,  // New setting for critical endpoint
+  optionalEndpointFailure: false   // New setting for optional endpoint
 };
 
 // Mock data
 const products = require('../core-app/mocks/products');
 const users = require('../core-app/mocks/users');
 const orders = require('../core-app/mocks/orders');
+
+// Mock analytics data
+const analyticsData = {
+  dailyVisitors: 2345,
+  conversionRate: 3.7,
+  bounceRate: 42.1,
+  averageSessionTime: "2:15",
+  topReferrers: ["google.com", "facebook.com", "twitter.com"],
+  deviceBreakdown: {
+    desktop: 65,
+    mobile: 30,
+    tablet: 5
+  }
+};
 
 app.use(cors());
 app.use(express.json());
@@ -76,6 +92,38 @@ app.get('/api/users/profile', (req, res) => {
 // Orders API
 app.get('/api/orders', (req, res) => {
   handleRequest(req, res, () => orders);
+});
+
+// Transactions API - Critical Endpoint
+app.get('/api/transactions', (req, res) => {
+  // Force failure based on criticalEndpointFailure setting
+  if (settings.criticalEndpointFailure) {
+    return res.status(500).json({ error: 'Critical Endpoint Failure' });
+  }
+  
+  handleRequest(req, res, () => {
+    const quantity = parseInt(req.query.quantity) || 1;
+    return {
+      totalAmount: 125000 * quantity,
+      domesticCount: 142 * quantity,
+      internationalCount: 87 * quantity,
+      amountsByCardType: {
+        "Visa": 52000 * quantity,
+        "Mastercard": 43000 * quantity,
+        "American Express": 30000 * quantity
+      }
+    };
+  });
+});
+
+// Analytics API - Optional Endpoint
+app.get('/api/analytics', (req, res) => {
+  // Force failure based on optionalEndpointFailure setting
+  if (settings.optionalEndpointFailure) {
+    return res.status(500).json({ error: 'Optional Endpoint Failure' });
+  }
+  
+  handleRequest(req, res, () => analyticsData);
 });
 
 // Generic request handler with chaos options

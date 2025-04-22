@@ -71,6 +71,16 @@
       padding-bottom: 6px;
       border-bottom: 1px solid #ddd;
     }
+    .endpoint-controls {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #ddd;
+    }
+    .endpoint-title {
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -112,6 +122,20 @@
       </label>
     </div>
     
+    <div class="endpoint-controls">
+      <div class="endpoint-title">Endpoint-Specific Controls</div>
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="criticalEndpointFailure"> Force Critical Endpoint Failure (/api/transactions)
+        </label>
+      </div>
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="optionalEndpointFailure"> Force Optional Endpoint Failure (/api/analytics)
+        </label>
+      </div>
+    </div>
+    
     <button id="resetButton">Reset to Defaults</button>
   </div>
   
@@ -134,6 +158,8 @@
     const latencyMaxValue = document.getElementById('latencyMaxValue');
     const timeoutCheckbox = document.getElementById('timeout');
     const malformedDataCheckbox = document.getElementById('malformedData');
+    const criticalEndpointFailureCheckbox = document.getElementById('criticalEndpointFailure');
+    const optionalEndpointFailureCheckbox = document.getElementById('optionalEndpointFailure');
     const resetButton = document.getElementById('resetButton');
     const eventsContainer = document.getElementById('events');
     
@@ -144,7 +170,9 @@
         latencyMin: parseInt(latencyMinInput.value),
         latencyMax: parseInt(latencyMaxInput.value),
         timeout: timeoutCheckbox.checked,
-        malformedData: malformedDataCheckbox.checked
+        malformedData: malformedDataCheckbox.checked,
+        criticalEndpointFailure: criticalEndpointFailureCheckbox.checked,
+        optionalEndpointFailure: optionalEndpointFailureCheckbox.checked
       };
       
       fetch('/settings', {
@@ -177,6 +205,14 @@
       
       timeoutCheckbox.checked = settings.timeout;
       malformedDataCheckbox.checked = settings.malformedData;
+      
+      if (settings.hasOwnProperty('criticalEndpointFailure')) {
+        criticalEndpointFailureCheckbox.checked = settings.criticalEndpointFailure;
+      }
+      
+      if (settings.hasOwnProperty('optionalEndpointFailure')) {
+        optionalEndpointFailureCheckbox.checked = settings.optionalEndpointFailure;
+      }
     }
     
     // Fetch initial settings
@@ -215,6 +251,8 @@
     latencyMaxInput.addEventListener('change', updateSettings);
     timeoutCheckbox.addEventListener('change', updateSettings);
     malformedDataCheckbox.addEventListener('change', updateSettings);
+    criticalEndpointFailureCheckbox.addEventListener('change', updateSettings);
+    optionalEndpointFailureCheckbox.addEventListener('change', updateSettings);
     
     resetButton.addEventListener('click', () => {
       const defaultSettings = {
@@ -222,7 +260,9 @@
         latencyMin: 100,
         latencyMax: 800,
         timeout: false,
-        malformedData: false
+        malformedData: false,
+        criticalEndpointFailure: false,
+        optionalEndpointFailure: false
       };
       
       updateUI(defaultSettings);
