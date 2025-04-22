@@ -24,6 +24,9 @@ console.log(`Starting Exercise ${exerciseNum}: ${getExerciseName(exerciseNum)}..
 // Run the exercise Next.js app
 try {
   process.chdir(exercisePath);
+
+  child_process.execSync('npm install', { stdio: 'inherit' });
+
   if (exerciseNum === '03' || exerciseNum === '04') {
     console.log('Running build mode for Exercise 03...');
     child_process.execSync('npx next build', { stdio: 'inherit' });

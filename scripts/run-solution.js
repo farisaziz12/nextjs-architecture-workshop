@@ -24,7 +24,9 @@ console.log(`Starting Solution ${solutionNum}: ${getSolutionName(solutionNum)}..
 // Run the solution Next.js app
 try {
   process.chdir(solutionPath);
-  
+
+  child_process.execSync('npm install', { stdio: 'inherit' });
+
   if (solutionNum === '03') {
     console.log('Building and starting solution 03 in production mode...');
     child_process.execSync('npx next build', { stdio: 'inherit' });
