@@ -189,7 +189,7 @@ export default function Home() {
 
 export const getServerSideProps = async () => {
   const queryClient = new QueryClient();
-  const prefetchHandler = createPrefetch(queryClient, 2_000);
+  const prefetchHandler = createPrefetch(queryClient, 500);
 
   await prefetchHandler.prefetch(["transactions", QUANTITY], () =>
     apiFetcher({

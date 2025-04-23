@@ -24,13 +24,6 @@ export type PrefetchResult<TData> = PrefetchSuccess<TData> | PrefetchError;
  * @param ms Time in milliseconds after which the promise will resolve
  * @returns A promise that resolves with a timeout error after the specified time
  */
-const createTimeout = (ms: number): Promise<never> => {
-  return new Promise((_, reject) => {
-    setTimeout(() => {
-      reject(new Error(`Request timed out after ${ms}ms`));
-    }, ms);
-  });
-};
 
 /**
  * Provides basic prefetching mechanism
@@ -69,10 +62,7 @@ export const createPrefetch = (queryClient: QueryClient, timeoutDuration = 5000)
       // Implement timeout pattern using Promise.race
       // If the fetchPromise resolves before the timeout, we'll get the data
       // If the timeout resolves first, it will throw an error that we'll catch
-      const data = await Promise.race([
-        fetchPromise,
-        createTimeout(timeoutDuration)
-      ]) as TData;
+      const data = await fetchPromise as TData;
 
       return {
         type: "data",
