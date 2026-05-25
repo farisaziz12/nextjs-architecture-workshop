@@ -80,12 +80,14 @@ Implement critical and optional queries to improve performance and user experien
 
 ## 📁 Detailed Exercise Structure
 
-Each exercise directory contains:
+Each exercise is a standalone Next.js app (Pages Router) with its own `package.json` and dependencies — installed on first run by the runner script. Every exercise directory contains:
 
-- `README.md` - Instructions and requirements
-- `pages/` - Next.js pages with TODO comments
-- `components/` - React components specific to the exercise
-- `lib/` - Utility functions and hooks needed for the exercise
+- `README.md` — instructions and acceptance criteria
+- `package.json` + `tsconfig.json` + `next.config.js` — per-app config
+- `pages/api/` — API routes you will modify or instrument
+- Next.js source files containing TODO comments where you'll add code
+
+> **Layout note**: Exercises 1 and 3 use a flat layout (`pages/`, `components/`, `lib/` at the app root). Exercises 2 and 4 use the Next.js `src/` convention (`src/pages/`, `src/components/`, `src/utils/`, `src/hooks/`). Both layouts are valid Next.js conventions — be aware which one you're in when navigating. This will be standardized in a future revision.
 
 ## 🧪 Mock API
 
@@ -101,11 +103,20 @@ Control failure modes through the API dashboard at `http://localhost:3001` when 
 
 ## 🔧 Technical Stack
 
-- Next.js (Pages Router)
-- TanStack Query for data fetching
-- `opossum` for circuit breaking
-- `react-error-boundary` for error handling
-- Tailwind CSS for styling
+- **Next.js** (Pages Router, v14.1.4 – v14.2.24 across exercises)
+- **TanStack Query** for data fetching (exercises 2 & 4)
+- **`opossum`** for circuit breaking (exercise 1)
+- **`react-error-boundary`** for error handling (exercise 3)
+- **`@sentry/nextjs`** for observability and error tagging (exercises 2, 3, 4)
+- **Mantine** UI + **Tabler Icons** (exercises 2 & 4)
+- **Tailwind CSS** for styling
+
+## 🆘 Troubleshooting
+
+- **Port 3000 already in use**: another dev server is running. Either stop it (`lsof -nP -iTCP:3000 -sTCP:LISTEN`) or close the conflicting app. The runner doesn't currently support port overrides.
+- **Port 3001 in use**: same for the mock API server.
+- **`corepack` missing**: install Node ≥ 16.9 (Corepack ships with it). On older Node, install pnpm globally (`npm i -g pnpm@10`).
+- **Sentry warnings during install**: source-map upload and native profiling are intentionally skipped via `pnpm.ignoredBuiltDependencies`. Workshop exercises do not require them.
 
 ## Ready to get started?
 
