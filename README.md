@@ -29,15 +29,18 @@ nextjs-architecture-workshop/
 
 ## 🛠 Setup Instructions
 
+> **Prerequisites**: Node.js ≥ 20 (use the version in `.nvmrc`). This workshop uses [pnpm](https://pnpm.io) via [Corepack](https://nodejs.org/api/corepack.html), which ships with Node.
+
 1. Clone the repository:
    ```
    git clone git@github.com:farisaziz12/nextjs-architecture-workshop.git
    cd nextjs-architecture-workshop
    ```
 
-2. Install dependencies:
+2. Enable Corepack and install dependencies (pnpm version is pinned in `package.json`):
    ```
-   npm install
+   corepack enable
+   pnpm install
    ```
 
 3. Copy the example environment file:
@@ -47,17 +50,17 @@ nextjs-architecture-workshop/
 
 4. Start a specific exercise:
    ```
-   npm run exercise 01
+   pnpm exercise 01
    ```
 
 5. Run a solution:
    ```
-   npm run solution 01
+   pnpm solution 01
    ```
 
 6. Run the mock API server (required for most exercises):
    ```
-   npm run mock-api
+   pnpm mock-api
    ```
 
 ## 📋 Exercise Overview
@@ -109,5 +112,5 @@ Control failure modes through the API dashboard at `http://localhost:3001` when 
 Begin with Exercise 1 to start building resilient Next.js applications!
 
 ```
-npm run exercise 01
+pnpm exercise 01
 ```

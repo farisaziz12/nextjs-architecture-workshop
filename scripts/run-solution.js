@@ -25,14 +25,17 @@ console.log(`Starting Solution ${solutionNum}: ${getSolutionName(solutionNum)}..
 try {
   process.chdir(solutionPath);
 
-  child_process.execSync('npm install', { stdio: 'inherit' });
+  child_process.execSync('pnpm install', { stdio: 'inherit' });
 
-  if (solutionNum === '03') {
-    console.log('Building and starting solution 03 in production mode...');
-    child_process.execSync('npx next build', { stdio: 'inherit' });
-    child_process.execSync('npx next start -p 3000', { stdio: 'inherit' });
+  // Solutions 03 and 04 must run in production build mode to mirror
+  // the exercise runner. The Next.js dev overlay would intercept the
+  // error and query-criticality behaviors these solutions demonstrate.
+  if (solutionNum === '03' || solutionNum === '04') {
+    console.log(`Building and starting solution ${solutionNum} in production mode...`);
+    child_process.execSync('pnpm exec next build', { stdio: 'inherit' });
+    child_process.execSync('pnpm exec next start -p 3000', { stdio: 'inherit' });
   } else {
-    child_process.execSync('npx next dev -p 3000', { stdio: 'inherit' });
+    child_process.execSync('pnpm exec next dev -p 3000', { stdio: 'inherit' });
   }
 } catch (error) {
   console.error('Error running solution:', error);

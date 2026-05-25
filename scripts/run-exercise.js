@@ -25,14 +25,19 @@ console.log(`Starting Exercise ${exerciseNum}: ${getExerciseName(exerciseNum)}..
 try {
   process.chdir(exercisePath);
 
-  child_process.execSync('npm install', { stdio: 'inherit' });
+  child_process.execSync('pnpm install', { stdio: 'inherit' });
 
+  // Exercises 03 and 04 must run in production build mode.
+  // The Next.js dev overlay intercepts client-side errors and React
+  // suspense boundary failures, which masks the exact behavior these
+  // exercises teach (error boundaries catching errors, critical vs.
+  // optional query failure modes). Keep these in build mode.
   if (exerciseNum === '03' || exerciseNum === '04') {
-    console.log('Running build mode for Exercise 03...');
-    child_process.execSync('npx next build', { stdio: 'inherit' });
-    child_process.execSync('npx next start -p 3000', { stdio: 'inherit' });
+    console.log(`Running build mode for Exercise ${exerciseNum}...`);
+    child_process.execSync('pnpm exec next build', { stdio: 'inherit' });
+    child_process.execSync('pnpm exec next start -p 3000', { stdio: 'inherit' });
   } else {
-    child_process.execSync('npx next dev -p 3000', { stdio: 'inherit' });
+    child_process.execSync('pnpm exec next dev -p 3000', { stdio: 'inherit' });
   }
 } catch (error) {
   console.error('Error running exercise:', error);
