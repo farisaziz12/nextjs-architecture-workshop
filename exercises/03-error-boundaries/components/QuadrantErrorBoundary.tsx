@@ -1,7 +1,10 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { reportError } from '../utils/errorReporting';
 
-// TODO: Add an errorTag prop to the ErrorBoundaryProps interface and use template literal type to ensure 'Error' suffix
+// 🦆 Task 1: add an `errorTag` prop here, typed with a template literal to force the
+// 'Error' suffix (e.g. `type ErrorTag = `${string}Error`` and `errorTag: ErrorTag`).
+// 🦉 This is the type that gets exported to call sites — keeping it strict here is
+// what makes `errorTag="ButtonClick"` fail to compile at `pages/index.tsx`.
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode | ((error: Error) => ReactNode);
@@ -34,7 +37,9 @@ class QuadrantErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryS
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // TODO: Report the error to Sentry with the errorTag
+    // 🦆 Task 1 (cont.): pass `this.props.errorTag` to reportError so the tag rides
+    // along to Sentry. After this, `pages/index.tsx`'s call sites should compile only
+    // when each errorTag ends in 'Error'.
     reportError(error);
 
     console.log('Component stack:', errorInfo.componentStack);

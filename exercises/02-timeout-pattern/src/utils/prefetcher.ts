@@ -20,10 +20,15 @@ type PrefetchError = {
 export type PrefetchResult<TData> = PrefetchSuccess<TData> | PrefetchError;
 
 /**
- * Creates a promise that resolves after the specified time with a timeout error
- * @param ms Time in milliseconds after which the promise will resolve
- * @returns A promise that resolves with a timeout error after the specified time
+ * Creates a promise that REJECTS after the specified time with a timeout error.
+ * @param ms Time in milliseconds after which the promise will reject
  */
+// 🦆 Task 1: implement this helper.
+// const timeout = (ms: number) => new Promise<never>((_, reject) => ...)
+// 🦉 It must `reject`, not `resolve`. Promise.race propagates the first settlement —
+// a rejected promise is what makes the timeout look like a thrown error to the caller.
+// 💯 Stretch: pair this with an AbortController so the losing fetch is actually cancelled
+// instead of running to completion in the background.
 
 /**
  * Provides basic prefetching mechanism
@@ -59,9 +64,11 @@ export const createPrefetch = (queryClient: QueryClient, timeoutDuration = 5000)
         ...options,
       });
 
-      // Implement timeout pattern using Promise.race
-      // If the fetchPromise resolves before the timeout, we'll get the data
-      // If the timeout resolves first, it will throw an error that we'll catch
+      // 🦆 Task 2: race the fetch against your `timeout(timeoutDuration)` helper.
+      // Replace the line below with:
+      //   const data = (await Promise.race([fetchPromise, timeout(timeoutDuration)])) as TData;
+      // 🦉 The `catch` below already handles the timeout error — `captureException(error)`
+      // will fire when the timeout wins, with an Error containing your timeout message.
       const data = await fetchPromise as TData;
 
       return {

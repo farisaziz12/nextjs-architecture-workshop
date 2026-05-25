@@ -3,7 +3,8 @@ import Quadrant1 from "../components/Quadrant1";
 import Quadrant2 from "../components/Quadrant2";
 import Quadrant3 from "../components/Quadrant3";
 import Quadrant4 from "../components/Quadrant4";
-// TODO: Import the QuadrantErrorBoundary component
+// 🦆 Task 3: import QuadrantErrorBoundary — you'll wrap each <Quadrant*/> with it below.
+// import QuadrantErrorBoundary from "../components/QuadrantErrorBoundary";
 import Link from "next/link";
 
 const geistSans = localFont({
@@ -41,35 +42,27 @@ export default function Home() {
 
       <main className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
         <div className="h-72 md:h-96 shadow-md rounded-xl overflow-hidden">
-          {/* TODO: Wrap Quadrant1 with QuadrantErrorBoundary 
-             1. Add an errorTag prop with value "ButtonClickError"
-             2. This will prevent the error from crashing the entire app
-          */}
+          {/* 🦆 Task 3a: wrap with <QuadrantErrorBoundary errorTag="ButtonClickError">.
+              After this, clicking the button 3 times leaves the other quadrants untouched. */}
           <Quadrant1 />
         </div>
-        
+
         <div className="h-72 md:h-96 shadow-md rounded-xl overflow-hidden">
-          {/* TODO: Wrap Quadrant2 with QuadrantErrorBoundary 
-             1. Add an errorTag prop with value "InputRenderError" 
-             2. This helps with error reporting and debugging
-          */}
+          {/* 🦆 Task 3b: wrap with <QuadrantErrorBoundary errorTag="InputRenderError">.
+              After this, typing "crash" in the input only kills this quadrant. */}
           <Quadrant2 />
         </div>
-        
+
         <div className="h-72 md:h-96 shadow-md rounded-xl overflow-hidden">
-          {/* TODO: Wrap Quadrant3 with QuadrantErrorBoundary 
-             1. Add an errorTag prop with value "TimerCountdownError"
-             2. Consider adding a custom fallback UI by using the fallback prop (optional challenge)
-             3. The fallback can be either a ReactNode or a function that receives the error
-          */}
+          {/* 🦆 Task 3c: wrap with <QuadrantErrorBoundary errorTag="TimerCountdownError">.
+              💯 Stretch: also pass a custom `fallback` prop — a ReactNode or `(error) => ReactNode`
+              — so the timer crash has a "Restart" button instead of the default fallback. */}
           <Quadrant3 />
         </div>
-        
+
         <div className="h-72 md:h-96 shadow-md rounded-xl overflow-hidden">
-          {/* TODO: Wrap Quadrant4 with QuadrantErrorBoundary
-             1. Add an errorTag prop with value "ControlQuadrantError"
-             2. Notice how errors are isolated to this quadrant only
-          */}
+          {/* 🦆 Task 3d: wrap with <QuadrantErrorBoundary errorTag="ControlQuadrantError">.
+              🦉 Try changing the tag to "ControlQuadrant" (no Error suffix) — TS should reject it. */}
           <Quadrant4 />
         </div>
       </main>

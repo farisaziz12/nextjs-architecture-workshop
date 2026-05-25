@@ -189,6 +189,10 @@ export default function Home() {
 
 export const getServerSideProps = async () => {
   const queryClient = new QueryClient();
+  // 🦆 Task 3: try different timeout budgets here once your `timeout()` and Promise.race are wired up.
+  //   500ms  → too tight (mock API takes ~2s). prefetch returns an error result, page still renders empty.
+  //   3000ms → loose enough for the mock API. prefetch returns data normally.
+  // 🦉 The mock API has a built-in ~2s delay on /api/proxy/transactions — see scripts/mock-api.js.
   const prefetchHandler = createPrefetch(queryClient, 500);
 
   await prefetchHandler.prefetch(["transactions", QUANTITY], () =>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Product } from '../types';
 import ProductCard from './ProductCard';
 import ProductSkeleton from './ProductSkeleton';
+// 🦆 Task 4: uncomment this import — you'll mount the component below.
 // import CircuitStatusIndicator from './CircuitStatusIndicator';
 
 export default function ProductList() {
@@ -10,7 +11,7 @@ export default function ProductList() {
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
 
-    // TODO: Add state for circuit status
+    // 🦆 Task 4: add state for the circuit status. Default it to 'closed'.
     // const [circuitStatus, setCircuitStatus] = useState<CircuitStatus>('closed');
 
     useEffect(() => {
@@ -25,12 +26,12 @@ export default function ProductList() {
 
                 const data = await response.json();
 
-                // TODO: Check response for circuit breaker status
+                // 🦆 Task 4 (cont.): read the circuit status off the API response.
+                // The API will start sending `data.circuitStatus` once Task 3 in `pages/api/products/index.ts` is done.
                 // if (data.circuitStatus) {
                 //   setCircuitStatus(data.circuitStatus);
                 // }
 
-                // Check for message
                 if (data.message) {
                     setMessage(data.message);
                 }
@@ -64,11 +65,14 @@ export default function ProductList() {
         );
     }
 
-    // TODO: Add a banner when the circuit is open
+    // 💯 Stretch: also render a top-level banner when the circuit is open, separate
+    // from the indicator — for example, a yellow strip explaining "showing cached data."
 
     return (
         <div>
-            {/* TODO: Add the CircuitStatusIndicator component here */}
+            {/* 🦆 Task 5: mount <CircuitStatusIndicator status={circuitStatus} /> here.
+                After this, the banner becomes red when the mock-API failure rate is high
+                and the circuit trips, and goes green once it recovers. */}
 
             {message && (
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-md">

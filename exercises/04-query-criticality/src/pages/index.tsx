@@ -326,8 +326,10 @@ export const getServerSideProps = async () => {
   const queryClient = new QueryClient();
   const prefetch = createPrefetch(queryClient, 2_000);
 
-  // Using basic prefetch for transactions
-  // TODO: Replace with criticalQuery implementation
+  // 🦆 Task 2a: this is the main table content — it's critical. Swap to:
+  //   await prefetch.criticalQuery(["transactions", QUANTITY], () => apiFetcher({ ... }));
+  // 🦉 After Task 2a + Task 1: enable `criticalEndpointFailure` in the mock-API dashboard
+  // (http://localhost:3001) → the page should render the error boundary, not crash blank.
   await prefetch.prefetch(["transactions", QUANTITY], () =>
     apiFetcher({
       url: `http://localhost:3000/api/proxy/transactions?quantity=${QUANTITY}`,
@@ -336,8 +338,10 @@ export const getServerSideProps = async () => {
   );
 
 
-  // Using basic prefetch for analytics
-  // TODO: Replace with optionalQuery implementation
+  // 🦆 Task 2b: analytics is a sidebar widget — optional. Swap to:
+  //   await prefetch.optionalQuery(["analytics"], () => apiFetcher({ ... }));
+  // 🦉 After Task 2b: enable `optionalEndpointFailure` in the mock-API dashboard →
+  // the transactions table still renders; analytics widgets are quietly empty.
   await prefetch.prefetch(["analytics"], () =>
     apiFetcher({
       url: `http://localhost:3000/api/proxy/analytics`,

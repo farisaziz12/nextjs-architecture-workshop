@@ -19,26 +19,22 @@ type PrefetchError = {
 
 export type PrefetchResult<TData> = PrefetchSuccess<TData> | PrefetchError;
 
-// Timeout function
+// 🦉 The `timeout` here RESOLVES with null after `ms` (not rejects). Combined with
+// Promise.race below, a timed-out fetch silently produces `data = null` — fine for
+// this exercise, but in production you'd usually want it to reject so the wrappers
+// can distinguish "slow upstream" from "upstream returned null".
 const timeout = (ms: number) =>
   new Promise((resolve) => setTimeout(() => resolve(null), ms));
 
 /**
- * Exercise: Extending Basic Prefetching with Query Criticality Syntax
- * 
- * Start with the basic prefetch functionality, then implement:
- * 1. Critical queries - required for a page to render properly
- * 2. Optional queries - enhance the page but aren't required
+ * Critical vs. optional query helpers.
  *
- * @example When completed:
- * const queryClient = new QueryClient()
+ * @example
  * const prefetch = createPrefetch(queryClient)
- *
- * // Critical query will throw if it fails
- * prefetch.criticalQuery('MyCriticalQuery', () => fetch(..))
- *
- * // Optional query will return null if it fails
- * prefetch.optionalQuery('MyOptionalQuery', () => fetch(..))
+ * // Throws to the error boundary if it fails:
+ * await prefetch.criticalQuery('transactions', () => fetch(...))
+ * // Returns null if it fails (caller renders without it):
+ * const result = await prefetch.optionalQuery('analytics', () => fetch(...))
  */
 export const createPrefetch = (queryClient: QueryClient, timeoutDuration = 5000) => {
   /**
@@ -54,8 +50,14 @@ export const createPrefetch = (queryClient: QueryClient, timeoutDuration = 5000)
     queryFn: QueryFunction<TQueryFnData, TQueryKey>,
     options?: FetchQueryOptions<TQueryFnData, TError, TData, TQueryKey>
   ): Promise<PrefetchResult<TData>> => {
-    // TODO: when migrating to use critical and optional queries, switch from
-    // `prefetchQuery` to `fetchQuery` so that the error is thrown and not swallowed. We want to handle the error ourselves.
+    // 🦆 Task 1: wrap everything in this function body in try/catch.
+    // On success: keep returning `{ type: "data", data }`.
+    // On error:
+    //   1. call `captureException(error)` (already imported).
+    //   2. return `{ type: "error", error: error instanceof Error ? error : new Error("Request failed.") }`.
+    // 🦉 Once Task 1 is done, the `criticalQuery` / `optionalQuery` wrappers below
+    // (which already switch on `result.type`) start behaving as advertised. Without
+    // Task 1 the wrappers never see an error result because the throw escapes first.
     const fetchPromise = queryClient.fetchQuery({
       queryKey,
       queryFn,
@@ -71,20 +73,15 @@ export const createPrefetch = (queryClient: QueryClient, timeoutDuration = 5000)
       type: "data",
       data,
     };
-
-    // TODO: Add try-catch block around this function to:
-    // 1. Capture exceptions with captureException(error)
-    // 2. Return { type: "error", error: error instanceof Error ? error : new Error(`Request failed.`) }
   };
 
   /**
-   * TODO 1: Implement criticalQuery function
-   * 
-   * This function should:
-   * - Use the prefetch function to fetch data
-   * - If the result is successful, return the data
-   * - If the result has an error, throw the error so it can be handled by error boundaries
+   * Critical query: throws on failure so an error boundary upstream catches it.
+   * Use for data the page can't render meaningfully without.
    */
+  // 🦉 This wrapper is already correctly shaped — it switches on `result.type`.
+  // It only behaves correctly once Task 1 above is done (prefetch must return an
+  // error result instead of throwing). Read it, but you don't need to edit it.
   const criticalQuery = async <
     TQueryFnData = unknown,
     TError = unknown,
@@ -95,11 +92,6 @@ export const createPrefetch = (queryClient: QueryClient, timeoutDuration = 5000)
     queryFn: QueryFunction<TQueryFnData, TQueryKey>,
     options?: FetchQueryOptions<TQueryFnData, TError, TData, TQueryKey>
   ): Promise<TData> => {
-    // TODO: Implement this function using the prefetch function
-    // Hint: For critical queries, you'll want to throw the error if prefetch fails
-    
-    // This is a placeholder implementation that always resolves
-    // Replace it with your implementation
     return prefetch(queryKey, queryFn, options).then(result => {
       if (result.type === "error") {
         throw result.error;
@@ -109,13 +101,12 @@ export const createPrefetch = (queryClient: QueryClient, timeoutDuration = 5000)
   };
 
   /**
-   * TODO 2: Implement optionalQuery function
-   * 
-   * This function should:
-   * - Use the prefetch function to fetch data
-   * - If the result is successful, return the data
-   * - If the result has an error, return null instead of throwing
+   * Optional query: returns null on failure so the page can render without this data.
+   * Use for sidebars, analytics widgets, anything non-essential.
    */
+  // 🦉 Same shape as criticalQuery — already correct, depends on Task 1.
+  // 💯 Stretch: differentiate the Sentry tag inside `prefetch` so optional failures
+  // can be alerted differently (or not at all) from critical ones.
   const optionalQuery = async <
     TQueryFnData = unknown,
     TError = unknown,
@@ -126,11 +117,6 @@ export const createPrefetch = (queryClient: QueryClient, timeoutDuration = 5000)
     queryFn: QueryFunction<TQueryFnData, TQueryKey>,
     options?: FetchQueryOptions<TQueryFnData, TError, TData, TQueryKey>
   ): Promise<TData | null> => {
-    // TODO: Implement this function using the prefetch function
-    // Hint: For optional queries, you'll want to return null if prefetch fails
-    
-    // This is a placeholder implementation that always returns null on error
-    // Replace it with your implementation
     return prefetch(queryKey, queryFn, options).then(result => {
       if (result.type === "error") {
         return null;

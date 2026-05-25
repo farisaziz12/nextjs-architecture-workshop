@@ -5,9 +5,9 @@ interface CircuitStatusIndicatorProps {
 }
 
 export default function CircuitStatusIndicator({ status }: CircuitStatusIndicatorProps) {
-  // TODO: Implement circuit status indicator
-  // The status can be 'closed', 'open', or 'half-open'
-  
+  // 🦉 This component is already implemented for the three known states.
+  // You don't need to edit it to finish the exercise — just mount it from `ProductList.tsx` (Task 5).
+
   if (status === 'closed') {
     return (
       <div className="bg-green-50 text-green-800 flex items-center px-4 py-2 rounded-md mb-6">
