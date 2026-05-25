@@ -1,56 +1,26 @@
-# Query Criticality Exercise
+# Solution 04 — Query Criticality
 
-In this exercise, you'll implement a system to handle queries based on their criticality level.
+Reference implementation for [Exercise 04](../../exercises/04-query-criticality/README.md). Start there if you haven't tried the exercise yet.
 
-## Problem Statement
+## 🔌 How to run
 
-Not all data fetching is created equal. Some queries are critical for rendering a page correctly, while others are optional enhancements. This exercise teaches you how to implement a pattern for differentiating between these query types.
-
-## Your Task
-
-1. Complete the implementation of a prefetching utility that categorizes queries as either:
-   - Critical: Required for proper page rendering (failures should throw errors)
-   - Optional: Enhance the page but aren't strictly required (failures should return null)
-
-2. Implement proper error handling for both query types.
-
-## Implementation Steps
-
-### 1. Fix the Basic Prefetch Implementation
-
-In `src/utils/prefetcher.ts`, you'll need to fix the basic `prefetch` function by:
-- Adding proper error handling with try-catch
-- Capturing exceptions with Sentry
-- Returning appropriate error objects
-
-### 2. Implement Critical Queries
-
-Create a `criticalQuery` function that:
-- Uses the prefetch function to fetch data
-- Returns the data if successful
-- Throws errors if the fetch fails (to be caught by error boundaries)
-
-### 3. Implement Optional Queries
-
-Create an `optionalQuery` function that:
-- Uses the prefetch function to fetch data
-- Returns the data if successful
-- Returns null instead of throwing if the fetch fails
-
-## Testing Your Implementation
-
-When completed, your implementation will allow developers to use your API like this:
-
-```typescript
-const queryClient = new QueryClient()
-const prefetch = createPrefetch(queryClient)
-
-// Critical query will throw if it fails
-await prefetch.criticalQuery('MyCriticalQuery', () => fetch(...))
-
-// Optional query will return null if it fails
-const result = await prefetch.optionalQuery('MyOptionalQuery', () => fetch(...))
-// result can be null, handle accordingly
+```bash
+pnpm mock-api
+pnpm solution 04
 ```
 
-This pattern ensures that pages can load even when non-critical data fetching fails, improving user experience while still maintaining proper error handling for essential data.
+Runs in production build mode (see exercise README for why).
+
+## 🔍 Key implementation choices
+
+- **Discriminated union for the prefetch result.** `{ type: 'success', data } | { type: 'error', error }` lets the wrappers switch on a literal without runtime type guards. The base `prefetch` never throws — it always returns one of the two shapes.
+- **`captureException` lives in the base `prefetch`, not in the wrappers.** Both critical and optional failures get reported to Sentry exactly once. The wrappers only decide what to *do* with the failure (throw vs. return null), not whether to report it.
+- **Critical failures throw past `getServerSideProps`.** In Pages Router that triggers `_error.jsx` / `500.tsx`. In App Router this would be `error.tsx`. The error boundary lives in the framework, not the page.
+- **Optional failures return `null`, not `undefined`.** `null` is an explicit "I tried and there's nothing"; `undefined` reads as "nobody set this." Components consuming the result get a clearer signal.
+
+## 💬 Discussion prompts
+
+- Who decides if a query is critical or optional — the backend, the page, or product? What happens when those three disagree?
+- "Critical for SSR but optional for client-side hydration" — does that exist? How would you model it?
+- The user lands on a page where critical data is broken. They see the error fallback. They refresh — same fallback. What's the **next** layer of resilience you reach for? (Multiple right answers: cache, feature flag kill switch, redirect, etc.)
+- This pattern composes with the timeout from Exercise 02 and the circuit breaker from Exercise 01. Sketch the call stack of `criticalQuery(timeout(breaker(fetch)))`. Which layer reports what to Sentry?

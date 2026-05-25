@@ -1,56 +1,71 @@
-# Query Criticality Exercise
+# Exercise 04 — Query Criticality
 
-In this exercise, you'll implement a system to handle queries based on their criticality level.
+## 🎯 What you'll learn
 
-## Problem Statement
+Not every API call is equally important. Some data is **critical** — the page can't render meaningfully without it. Other data is **optional** — a nice-to-have that shouldn't drag the whole page down if it fails. You'll build a prefetch API that makes this distinction explicit and lets the page handle each kind correctly.
 
-Not all data fetching is created equal. Some queries are critical for rendering a page correctly, while others are optional enhancements. This exercise teaches you how to implement a pattern for differentiating between these query types.
+## ⏱ Time
 
-## Your Task
+~25 minutes
 
-1. Complete the implementation of a prefetching utility that categorizes queries as either:
-   - Critical: Required for proper page rendering (failures should throw errors)
-   - Optional: Enhance the page but aren't strictly required (failures should return null)
+## 🧠 The problem
 
-2. Implement proper error handling for both query types.
+Today `src/utils/prefetcher.ts` exposes a single `prefetch()` that swallows errors silently. The page in `src/pages/index.tsx` prefetches two endpoints in `getServerSideProps`:
+- `transactions` — the main table content. **No transactions = empty page = nothing to look at.**
+- `analytics` — a sidebar widget with KPIs. **No analytics = page is still useful.**
 
-## Implementation Steps
+Right now both are treated identically. If `analytics` is slow or broken, the whole page either hangs (no timeout) or silently renders with empty widgets (no error report). And if `transactions` fails, you don't notice either, because the prefetch eats the error.
 
-### 1. Fix the Basic Prefetch Implementation
+You'll split the API into:
+- `criticalQuery(key, fn)` — fetch, and if it fails, **throw** (caught by an error boundary upstream so the user sees a "this page is broken" state and Sentry sees the exception).
+- `optionalQuery(key, fn)` — fetch, and if it fails, **return null** + report to Sentry so the page renders without the optional widget.
 
-In `src/utils/prefetcher.ts`, you'll need to fix the basic `prefetch` function by:
-- Adding proper error handling with try-catch
-- Capturing exceptions with Sentry
-- Returning appropriate error objects
+> **This exercise must run in production build mode** (the runner does this for you). The dev overlay would catch the thrown error before the boundary does.
 
-### 2. Implement Critical Queries
+## 🗺 Files you'll work in
 
-Create a `criticalQuery` function that:
-- Uses the prefetch function to fetch data
-- Returns the data if successful
-- Throws errors if the fetch fails (to be caught by error boundaries)
+- `src/utils/prefetcher.ts` — add `criticalQuery` and `optionalQuery`, and harden the base `prefetch` with try/catch + Sentry capture.
+- `src/pages/index.tsx` — replace the two `prefetch.prefetch(...)` calls in `getServerSideProps` with the right `criticalQuery` / `optionalQuery` variant.
 
-### 3. Implement Optional Queries
+## 📋 Your task
 
-Create an `optionalQuery` function that:
-- Uses the prefetch function to fetch data
-- Returns the data if successful
-- Returns null instead of throwing if the fetch fails
+1. **Harden the base `prefetch`** (around line 75 of `prefetcher.ts`): wrap the fetch in `try/catch`, call `captureException(error)` (already imported), and **return** an error result the wrappers can branch on. Don't throw from the base function — let the wrappers decide.
+2. **Implement `criticalQuery(queryKey, queryFn, options?)`** (around line 81): call `prefetch` underneath. If the result is an error, **throw** it so the error boundary upstream catches it. If success, return the data.
+3. **Implement `optionalQuery(queryKey, queryFn, options?)`** (around line 112): call `prefetch` underneath. If error, **return `null`**. If success, return the data. Sentry already saw the error via the base prefetch — don't double-capture.
+4. **In `src/pages/index.tsx`** (around lines 330, 340), swap the two prefetch calls:
+   - `transactions` → `prefetch.criticalQuery(...)`
+   - `analytics` → `prefetch.optionalQuery(...)`
 
-## Testing Your Implementation
+## ✅ You'll know you're done when
 
-When completed, your implementation will allow developers to use your API like this:
+- [ ] With both endpoints healthy, the page renders normally — transactions table and analytics widgets both populated.
+- [ ] Set `optionalEndpointFailure: true` in the mock API dashboard. The page **still renders** transactions; analytics widgets are gracefully empty/null. Sentry receives an error report.
+- [ ] Set `criticalEndpointFailure: true`. The page renders the **error boundary fallback** (not a blank screen, not a crash). Sentry receives an error report.
+- [ ] No unhandled promise rejections in server logs in either scenario.
+- [ ] Running `pnpm solution 04` side-by-side shows the same behavior.
 
-```typescript
-const queryClient = new QueryClient()
-const prefetch = createPrefetch(queryClient)
+## 💡 Hints (if stuck)
 
-// Critical query will throw if it fails
-await prefetch.criticalQuery('MyCriticalQuery', () => fetch(...))
+- The discriminated union pattern is cleanest: `type PrefetchResult<T> = { type: 'success'; data: T } | { type: 'error'; error: Error }`. Wrappers switch on `.type`.
+- Don't capture in `criticalQuery` AND in `prefetch` — you'll get duplicate Sentry events for the same error. Capture once in `prefetch`.
+- The error you throw from `criticalQuery` needs to reach an error boundary. In Pages Router this means it propagates through `getServerSideProps` and triggers `pages/_error.jsx` (or `pages/500.tsx`).
+- The mock API dashboard at <http://localhost:3001> has dedicated `criticalEndpointFailure` and `optionalEndpointFailure` toggles for this exercise.
 
-// Optional query will return null if it fails
-const result = await prefetch.optionalQuery('MyOptionalQuery', () => fetch(...))
-// result can be null, handle accordingly
+## 🌶 Stretch goals
+
+- Add a `timeout` option to both wrappers (reuse the timeout pattern from Exercise 02) so a *slow* critical query also throws instead of hanging.
+- Add a third tier: `degradedQuery(queryKey, queryFn, fallback)` — like `optionalQuery` but returns a caller-provided fallback instead of `null`.
+- Differentiate Sentry tags: `query.criticality: 'critical' | 'optional'` so you can alert only on critical failures.
+- Add a `Cache-Control: stale-if-error` strategy on top: if the call fails, serve the last cached value (the cache file is `src/utils/cache.ts`).
+
+## 🔌 How to run
+
+```bash
+# Terminal 1
+pnpm mock-api
+
+# Terminal 2
+pnpm exercise 04
 ```
 
-This pattern ensures that pages can load even when non-critical data fetching fails, improving user experience while still maintaining proper error handling for essential data.
+Use the mock API dashboard at <http://localhost:3001> to flip the `criticalEndpointFailure` and `optionalEndpointFailure` toggles while testing.

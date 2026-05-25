@@ -1,37 +1,24 @@
-# Exercise 1: Circuit Breaker Pattern
+# Solution 01 — Circuit Breaker Pattern
 
-In this exercise, you'll implement a circuit breaker for the product catalog API to handle intermittent failures.
+Reference implementation for [Exercise 01](../../exercises/01-circuit-breaker/README.md). Start there if you haven't tried the exercise yet — reading the solution first defeats the point.
 
-## Background
+## 🔌 How to run
 
-The product catalog API occasionally experiences outages during high traffic periods. Without proper protection, these failures cascade and affect the entire application.
+```bash
+pnpm mock-api       # in one terminal
+pnpm solution 01    # in another
+```
 
-## Task
+## 🔍 Key implementation choices
 
-1. Implement a circuit breaker in the `/api/products.ts` API route
-2. Add a fallback mechanism to serve cached or empty data when the circuit is open
-3. Implement a visual indicator that shows the circuit state to users
-4. Configure appropriate thresholds for opening and closing the circuit
+- **One breaker per module, not per request.** Circuit state (failure count, last open time) must persist across requests, so the `CircuitBreaker` instance lives at module scope in each API route.
+- **Fallback returns `{ products: [], circuitStatus: 'open' }`.** Empty data + an explicit status field — the client can render a banner instead of guessing why the list is empty.
+- **`errorThresholdPercentage: 50` and `resetTimeout: 1000`** are aggressive for a workshop. In production these should be tuned to the real failure rate baseline (the breaker should never open for normal noise) and the upstream's typical recovery time.
+- **Coloured console logs in `lib/circuitBreaker.ts`** are a workshop convenience for spotting state transitions in the terminal. In production you'd emit structured events / OpenTelemetry spans instead.
 
-## Files to modify
+## 💬 Discussion prompts
 
-- `pages/api/products.ts` - Add circuit breaker implementation
-- `lib/circuitBreaker.ts` - Complete the circuit breaker utility
-- `components/ProductList.ts` - Handle fallback responses
-
-## Testing your implementation
-
-1. Start the application with `npm run exercise 01`
-2. Open the mock API control panel at http://localhost:3001
-3. Increase the failure rate to 80%
-4. Refresh the products page several times
-5. Observe the circuit breaker opening after successive failures
-6. Reduce the failure rate to 0%
-7. Wait for the circuit to move to half-open and then closed state
-
-## Success criteria
-
-- The application shows fallback content when the API fails
-- The circuit opens after hitting the failure threshold
-- The circuit automatically recovers when the API becomes stable
-- Users are informed about the fallback mode
+- What's the difference between a circuit breaker and a retry? When do you want both?
+- What happens if you make `resetTimeout` too short? Too long? Who pays the cost of each?
+- A circuit opens during a Black Friday spike — is that a bug in the breaker config or a bug in the upstream? How do you tell?
+- The breaker here protects an internal API. Would you use one in front of a payment provider or auth service? What changes about the fallback?

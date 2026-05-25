@@ -1,37 +1,67 @@
-# Exercise 1: Circuit Breaker Pattern
+# Exercise 01 — Circuit Breaker Pattern
 
-In this exercise, you'll implement a circuit breaker for the product catalog API to handle intermittent failures.
+## 🎯 What you'll learn
 
-## Background
+How to stop a flaky upstream API from taking down your whole app — by wrapping calls in a circuit breaker that "opens" after repeated failures, serves a fallback, then "closes" again automatically once the dependency recovers.
 
-The product catalog API occasionally experiences outages during high traffic periods. Without proper protection, these failures cascade and affect the entire application.
+## ⏱ Time
 
-## Task
+~30 minutes
 
-1. Implement a circuit breaker in the `/api/products.ts` API route
-2. Add a fallback mechanism to serve cached or empty data when the circuit is open
-3. Implement a visual indicator that shows the circuit state to users
-4. Configure appropriate thresholds for opening and closing the circuit
+## 🧠 The problem
 
-## Files to modify
+The product catalog API behind this app is unreliable. Under load it returns 500s; sometimes it's just slow. Without protection, every page request still hammers the failing API, queuing requests, exhausting the Node event loop, and propagating the outage to users who never asked for a product page.
 
-- `pages/api/products.ts` - Add circuit breaker implementation
-- `lib/circuitBreaker.ts` - Complete the circuit breaker utility
-- `components/ProductList.ts` - Handle fallback responses
+A circuit breaker breaks this loop: after N failures it stops forwarding calls and immediately serves a fallback (cached or empty data), giving the upstream time to recover. After a cool-off it lets one probe through (half-open); on success it closes again.
 
-## Testing your implementation
+You'll use [`opossum`](https://nodeshift.dev/opossum/) — a small, battle-tested circuit breaker for Node.
 
-1. Start the application with `npm run exercise 01`
-2. Open the mock API control panel at http://localhost:3001
-3. Increase the failure rate to 80%
-4. Refresh the products page several times
-5. Observe the circuit breaker opening after successive failures
-6. Reduce the failure rate to 0%
-7. Wait for the circuit to move to half-open and then closed state
+## 🗺 Files you'll work in
 
-## Success criteria
+- `lib/circuitBreaker.ts` — already-built helper that wraps a function with `opossum` (no edits needed; you'll *use* it)
+- `pages/api/products/index.ts` — list endpoint, wrap the upstream call here
+- `pages/api/products/[id].ts` — detail endpoint, same pattern
+- `components/ProductList.tsx` — needs to read the circuit status from the API response and surface it
+- `components/CircuitStatusIndicator.tsx` — skeleton you'll flesh out into a visible banner/badge
 
-- The application shows fallback content when the API fails
-- The circuit opens after hitting the failure threshold
-- The circuit automatically recovers when the API becomes stable
-- Users are informed about the fallback mode
+## 📋 Your task
+
+1. **Wrap the upstream API call in `pages/api/products/index.ts`** with `breaker(...)` from `lib/circuitBreaker.ts`. Add a fallback that returns empty/cached data plus a `circuitStatus` field on the JSON response.
+2. **Do the same in `pages/api/products/[id].ts`** for the detail endpoint.
+3. **In `components/ProductList.tsx`**, add state for the circuit status and read it from the API response. Wire it through to the indicator.
+4. **In `components/CircuitStatusIndicator.tsx`**, render a clear visual signal: closed = green/no banner, half-open = amber, open = red banner with "serving cached data."
+5. **Pick sensible thresholds** in your `breaker()` call — start with `errorThresholdPercentage: 50`, `resetTimeout: 10000`. Document why.
+
+## ✅ You'll know you're done when
+
+- [ ] With the mock API at 0% failure rate, the page loads products normally and shows no banner.
+- [ ] Setting the mock API to 80% failure rate and refreshing 5–10 times opens the circuit — you see the "open" indicator and cached/empty content instead of an error.
+- [ ] Dropping the failure rate back to 0% and waiting `resetTimeout` ms moves the circuit through half-open → closed (visible in the indicator).
+- [ ] Server logs show the opossum event lifecycle (`open`, `halfOpen`, `close`, `fallback`).
+- [ ] Running `pnpm solution 01` side-by-side shows the same behavior.
+
+## 💡 Hints (if stuck)
+
+- The `breaker(fn, opts)` helper returns an opossum `CircuitBreaker` instance. Call `.fire(arg)` on it to invoke your wrapped function and get a promise back.
+- Use `.fallback(fn)` to register what to return when the circuit is open *or* the wrapped call fails.
+- The current circuit state is `circuit.status.state` (`'closed'`, `'open'`, `'halfOpen'`) — surface this in the API response so the frontend can render the indicator without re-querying.
+- Create the breaker **once per module** (not per request) — circuit state needs to persist across requests.
+
+## 🌶 Stretch goals
+
+- Add a `lastFailureReason` field to the response so the indicator can show *why* the circuit opened.
+- Emit a custom Sentry breadcrumb on each state transition (`open`, `halfOpen`, `close`).
+- Add a manual "reset circuit" admin endpoint and a button in the indicator.
+- Use the cache slot in `core-app/mocks/` to serve real last-known-good product data instead of an empty array.
+
+## 🔌 How to run
+
+```bash
+# Terminal 1 — the mock API (provides /api/products + the failure-rate dashboard)
+pnpm mock-api
+
+# Terminal 2 — the exercise app
+pnpm exercise 01
+```
+
+Then open <http://localhost:3000> and the mock-API control dashboard at <http://localhost:3001>.

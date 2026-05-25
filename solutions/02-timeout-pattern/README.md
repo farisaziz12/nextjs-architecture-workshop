@@ -1,40 +1,24 @@
-# Timeout Pattern Exercise
+# Solution 02 — Timeout Pattern
 
-In this exercise, you'll implement the timeout pattern for handling API requests that take too long to resolve.
+Reference implementation for [Exercise 02](../../exercises/02-timeout-pattern/README.md). Start there if you haven't tried the exercise yet.
 
-## Problem Statement
+## 🔌 How to run
 
-The application has a transaction dashboard that fetches data from an API. The API sometimes takes a long time to respond (simulated with a 2-second delay). We need to implement a timeout mechanism to ensure that requests don't hang indefinitely.
-
-## Your Task
-
-1. Implement a timeout function that resolves after a given time period.
-2. Use Promise.race to race between the fetch promise and a timeout promise.
-3. Add proper error handling for timeout scenarios.
-4. Test the application with different timeout values.
-
-## Implementation Steps
-
-### 1. Implementing the Timeout Function
-
-In `src/utils/prefetcher.ts`, you'll find TODO comments where you need to implement a timeout function:
-
-```typescript
-// TODO: Implement a timeout function that resolves after a given time
-// The timeout function will be used for race conditions with Promise.race
+```bash
+pnpm mock-api
+pnpm solution 02
 ```
 
-### 2. Add Timeout Logic to the API Fetcher
+## 🔍 Key implementation choices
 
-In `src/pages/index.tsx`, you'll find a TODO comment for implementing timeout handling for queries:
+- **`Promise.race` doesn't cancel the loser.** When the timeout wins, the original fetch keeps running until it eventually settles — the result is just ignored. For a real network call this means open sockets and Node memory until the upstream replies. The stretch goal asks you to fix this with `AbortController`.
+- **The timeout `rejects`, it doesn't `resolve` with a sentinel.** A rejected promise is what makes `Promise.race` propagate the failure as a thrown error — `await` will throw, and the caller's try/catch handles it like any other failure.
+- **`captureException` is called inside `prefetch`, not at the page layer.** Centralising the Sentry call means every prefetch call site gets observability for free; pages don't need to remember to instrument.
+- **The timeout value is passed in, not hard-coded.** `getServerSideProps` decides the budget for *its* prefetch. A faster page might use 500ms; a richer one might allow 3s. This decision belongs at the call site, not in the helper.
 
-```typescript
-// TODO: Implement timeout handling for the query
-// If a request takes longer than a specified time limit, it should be cancelled
-```
+## 💬 Discussion prompts
 
-## Testing Your Implementation
-
-The API has an artificial delay of 2 seconds to help you test your timeout implementation. Try setting the timeout to:
-- 3 seconds (the request should succeed)
-- 1 second (the request should timeout)
+- Why not just rely on the HTTP client's built-in timeout (`fetch` doesn't have one; `axios` does)? Where does each timeout actually live?
+- What's the right timeout value? How would you measure it in production?
+- A timeout fires, you serve the page without that data. The user reloads. Same data is still slow — same timeout fires again. What's the next pattern you reach for? (Hint: it's in Exercise 01.)
+- Timeouts mask latency problems. How do you avoid declaring "all good" when actually the upstream is degraded?

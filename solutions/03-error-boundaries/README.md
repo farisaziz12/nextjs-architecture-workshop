@@ -1,35 +1,23 @@
-# Error Boundaries Exercise
+# Solution 03 — Error Boundaries
 
-## Objective
-In this exercise, you'll learn how to implement error boundaries in a Next.js application. You'll work with 4 quadrants that each contain components that will throw errors when interacted with. Currently, any error will crash the entire application, but you'll add error boundaries to isolate failures to their respective quadrants.
+Reference implementation for [Exercise 03](../../exercises/03-error-boundaries/README.md). Start there if you haven't tried the exercise yet.
 
-## Goals
-1. Implement error boundaries to isolate failures to individual quadrants
-2. Understand how to use error tags for better error reporting
-3. Create custom fallback UIs for different types of errors
+## 🔌 How to run
 
-## Initial State
-In the starting code:
-- The application has a global error boundary in `_app.tsx`
-- Any error in any of the quadrants will crash the entire application
-- There are TODO comments throughout the codebase guiding you on what to implement
+```bash
+pnpm solution 03
+```
 
-## Tasks
-1. Import the `QuadrantErrorBoundary` component in `pages/index.tsx`
-2. Wrap each quadrant with a `QuadrantErrorBoundary` component
-3. Add appropriate error tags to each boundary for better error reporting
-4. (Optional) Create a custom fallback UI for at least one quadrant
+Runs in production build mode (see exercise README for why). No mock API needed.
 
-## Components Overview
-- `QuadrantErrorBoundary.tsx`: A reusable error boundary component that you'll use to wrap each quadrant
-- `GlobalErrorBoundary.tsx`: Already implemented to catch uncaught errors at the application level
-- `Quadrant1.tsx`, `Quadrant2.tsx`, etc.: Components that intentionally throw errors when interacted with
+## 🔍 Key implementation choices
 
-## Tips
-- Error boundaries only catch errors in the component tree below them
-- Each error boundary can have its own error tag for better categorization
-- You can provide custom fallback UIs to replace the default error UI
-- The `resetError` method allows users to retry after an error occurs
+- **Per-quadrant boundaries, not one boundary wrapping all four.** Containment is the whole point — a single shared boundary would re-introduce the original "one error kills the page" problem in a different shape.
+- **Template literal type `\`${string}Error\``.** Forces tag names to be self-describing at the call site. `errorTag="ButtonClickError"` reads better than `errorTag="ButtonClick"` and is enforced by the compiler instead of a convention.
+- **`Sentry.withScope` for tag isolation.** Setting a tag globally would attach it to every subsequent event in the request. `withScope` keeps the tag bound to this single exception report.
+- **The global boundary in `_app.tsx` stays.** Per-quadrant boundaries handle *known* failure points; the global boundary catches anything the per-quadrant boundaries miss (e.g., a bug in the layout itself). Defense in depth.
 
-## Understanding Error Tags
-Error tags help categorize different types of errors for better reporting. When you add an error tag to an error boundary, it gets passed to the error reporting service (like Sentry in real applications) to group similar errors together, rather than relying on the underlying error name.
+## 💬 Discussion prompts
+
+- Error boundaries only catch errors during **rendering**, in lifecycle methods, and in constructors. They do **not** catch errors in event handlers, async code, or `setTimeout`. Where in our quadrants does each error actually originate? Why does the boundary still catch them?
+- A boundary that auto-retries vs. one that requires the user to click "retry" — which one belongs where?

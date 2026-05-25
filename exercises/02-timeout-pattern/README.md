@@ -1,40 +1,59 @@
-# Timeout Pattern Exercise
+# Exercise 02 — Timeout Pattern
 
-In this exercise, you'll implement the timeout pattern for handling API requests that take too long to resolve.
+## 🎯 What you'll learn
 
-## Problem Statement
+How to bound the time you'll wait for a slow upstream by racing the real request against a timeout promise. Without this, a single hung API call holds your event loop, your TanStack Query cache, and your user's tab hostage.
 
-The application has a transaction dashboard that fetches data from an API. The API sometimes takes a long time to respond (simulated with a 2-second delay). We need to implement a timeout mechanism to ensure that requests don't hang indefinitely.
+## ⏱ Time
 
-## Your Task
+~15 minutes
 
-1. Implement a timeout function that resolves after a given time period.
-2. Use Promise.race to race between the fetch promise and a timeout promise.
-3. Add proper error handling for timeout scenarios.
-4. Test the application with different timeout values.
+## 🧠 The problem
 
-## Implementation Steps
+`pages/index.tsx` prefetches transactions in `getServerSideProps` so the dashboard renders with data already on the wire. But the mock API has been instrumented to occasionally take 2 full seconds to respond. Without a timeout, the SSR step blocks on it, and the user sees a frozen tab until the upstream eventually replies (or never does).
 
-### 1. Implementing the Timeout Function
+You'll bound the wait with `Promise.race(fetch, timeout)` so a slow upstream becomes a clean, observable timeout error you can decide how to handle — fall back, retry, surface a friendlier UI — instead of a hang.
 
-In `src/utils/prefetcher.ts`, you'll find TODO comments where you need to implement a timeout function:
+## 🗺 Files you'll work in
 
-```typescript
-// TODO: Implement a timeout function that resolves after a given time
-// The timeout function will be used for race conditions with Promise.race
+- `src/utils/prefetcher.ts` — the prefetch helper used by SSR. Add the timeout primitive here.
+- `src/pages/index.tsx` — wire the timeout value into the prefetch call (defaults to 500ms currently).
+
+## 📋 Your task
+
+1. **In `src/utils/prefetcher.ts`**, implement the `timeout(ms)` helper near the top of the file. It should return a `Promise` that **rejects** after `ms` milliseconds with a clearly-named error (e.g., `new Error('Request timed out')`).
+2. **Race the fetch against the timeout** inside the `prefetch` function using `Promise.race([fetchPromise, timeout(ms)])`. The first one to settle wins.
+3. **Catch the timeout** so the upstream call doesn't bring down the whole SSR. Capture with Sentry (`captureException` is already imported), then return an error result the caller can branch on — don't let it bubble up to the page.
+4. **Try different timeout values** from `src/pages/index.tsx`'s `getServerSideProps` to confirm behavior.
+
+## ✅ You'll know you're done when
+
+- [ ] With the timeout set to **3000ms**, the page loads transactions normally (mock API delay is ~2s).
+- [ ] With the timeout set to **1000ms**, the prefetch errors out cleanly — the page still renders (no crash) but transactions are empty/error-state.
+- [ ] No unhandled promise rejection in the server logs.
+- [ ] Sentry sees a `captureException` call when the timeout fires (visible in your Sentry dev console if configured).
+- [ ] Running `pnpm solution 02` side-by-side shows the same behavior.
+
+## 💡 Hints (if stuck)
+
+- `setTimeout` doesn't return a promise. Wrap it: `new Promise((_, reject) => setTimeout(() => reject(new Error(...)), ms))`.
+- `Promise.race` resolves/rejects with whichever input settles first. The "loser" still runs to completion in the background — clear the timeout in cleanup if you care.
+- The fetch promise here is whatever `queryFn` returns. Don't wrap `apiFetcher` directly; wrap the `queryFn` you pass into `queryClient.prefetchQuery`.
+- An ergonomic shape: `const result = await Promise.race([queryFn(), timeout(ms)]).catch(...)`.
+
+## 🌶 Stretch goals
+
+- Make the timeout `AbortController`-aware so the actual fetch is cancelled (not just ignored) when the timeout wins.
+- Differentiate timeout errors from upstream 5xx in your Sentry tag (`error.type: 'timeout' | 'upstream'`).
+- Add an exponential backoff retry once before giving up, but cap the **total** wall-clock budget at your timeout value.
+- Surface the timeout state to the client so it can show "we're having trouble loading this — try again."
+
+## 🔌 How to run
+
+```bash
+# Terminal 1
+pnpm mock-api
+
+# Terminal 2
+pnpm exercise 02
 ```
-
-### 2. Add Timeout Logic to the API Fetcher
-
-In `src/pages/index.tsx`, you'll find a TODO comment for implementing timeout handling for queries:
-
-```typescript
-// TODO: Implement timeout handling for the query
-// If a request takes longer than a specified time limit, it should be cancelled
-```
-
-## Testing Your Implementation
-
-The API has an artificial delay of 2 seconds to help you test your timeout implementation. Try setting the timeout to:
-- 3 seconds (the request should succeed)
-- 1 second (the request should timeout)
