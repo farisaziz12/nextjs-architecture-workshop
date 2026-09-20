@@ -29,7 +29,7 @@ const Quadrant3: React.FC = () => {
 
   const handleReset = () => {
     setIsRunning(false);
-    setCountdown(10);
+    setCountdown(5);
   };
 
   // Calculate the percentage for the progress ring

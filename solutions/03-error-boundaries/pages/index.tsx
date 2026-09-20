@@ -69,12 +69,13 @@ export default function Home() {
           */}
           <QuadrantErrorBoundary 
             errorTag="TimerCountdownError"
-            fallback={(error) => (
+            fallback={(error, resetError) => (
               <div className="flex flex-col items-center justify-center h-full p-6 bg-yellow-50 text-yellow-800">
                 <div className="w-full max-w-md bg-white rounded-lg shadow-sm p-6 border border-yellow-200">
                   <h3 className="text-xl font-bold mb-2">Timer Error</h3>
                   <p className="mb-4">{error.message}</p>
                   <p className="text-sm text-yellow-600">The countdown timer encountered an error.</p>
+                  <button onClick={resetError} className="mt-4 rounded bg-yellow-700 px-4 py-2 text-white">Restart timer</button>
                 </div>
               </div>
             )}

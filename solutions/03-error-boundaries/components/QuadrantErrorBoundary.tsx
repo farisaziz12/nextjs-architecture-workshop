@@ -4,7 +4,7 @@ import { reportError } from '../utils/errorReporting';
 interface ErrorBoundaryProps {
   children: ReactNode;
   errorTag: `${string}Error`;
-  fallback?: ReactNode | ((error: Error) => ReactNode);
+  fallback?: ReactNode | ((error: Error, resetError: () => void) => ReactNode);
 }
 
 interface ErrorBoundaryState {
@@ -54,7 +54,7 @@ class QuadrantErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryS
       // If a custom fallback is provided, use it
       if (fallback) {
         if (typeof fallback === 'function') {
-          return fallback(error);
+          return fallback(error, this.resetError);
         }
         return fallback;
       }

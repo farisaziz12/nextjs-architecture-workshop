@@ -12,7 +12,7 @@ const Quadrant4: React.FC = () => {
   };
 
   const triggerError = () => {
-    // This will throw an error when the button is clicked
+    // Intentional boundary limitation: a direct event-handler throw is not caught.
     throw new Error('Quadrant 4 error: Test error button clicked');
   };
 
@@ -24,7 +24,7 @@ const Quadrant4: React.FC = () => {
           Control Panel
         </h3>
         <p className="mt-2 text-amber-700 text-sm">
-          This quadrant demonstrates manual error triggering.
+          This error is thrown inside a click handler. It will not show a boundary fallback; the counter should remain usable.
         </p>
       </div>
       

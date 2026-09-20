@@ -23,8 +23,8 @@ export const reportError = (error: Error): void => {
   //   const tagged = new Error(errorTag, { cause: error });
   //   tagged.name = errorTag;
   //   Sentry.captureException(tagged, { level: 'error' });
-  // 🦉 Sentry groups events by error.name + stack. Renaming via the tag means all
-  // ButtonClickErrors group together — even if the underlying error class differs.
+  // 🦉 The label makes the failure easier to identify. Sentry grouping also depends
+  // on stack traces and grouping configuration; a name alone is not a guarantee.
   Sentry.captureException(error, {
     level: 'error',
   });

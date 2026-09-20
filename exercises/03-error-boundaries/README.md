@@ -1,66 +1,34 @@
-# Exercise 03 — Error Boundaries
+# Exercise 03 — Failure isolation and recovery
 
-## 🎯 What you'll learn
+## Goal and timing
 
-How to contain a runtime error to a small piece of UI instead of letting it crash the whole app — and how to **tag** those errors so your monitoring tool groups them meaningfully instead of by their generic `TypeError` / `ReferenceError`.
+35 minutes: 5-minute demonstration, 15-minute implementation, 10-minute verification, 5-minute discussion.
 
-## ⏱ Time
+This app is a four-quadrant dashboard. The starter has a global boundary; failures in Quadrants 1–3 replace the whole page. Add local boundaries so healthy quadrants stay interactive and keep their state. The product-page failure map is a separate discussion example, not this app.
 
-~25 minutes
+## Run
 
-## 🧠 The problem
+From the repository root, use `pnpm exercise 03`. No mock API is required. The runner builds and serves production mode so the development error overlay does not obscure the fallback demonstration. Stop the server and rerun after editing to rebuild. Run `pnpm solution 03` after stopping the exercise; both use port 3000.
 
-The app is a 2×2 dashboard of four "quadrants." Each quadrant is wired to throw a different runtime error when the user interacts with it (button click, input value, timer expiry). Today there's only a *global* error boundary in `_app.tsx`, so any one quadrant blowing up takes the entire page down — including the three quadrants that work fine.
+## Implementation — 15 minutes
 
-You'll wrap each quadrant in its own `QuadrantErrorBoundary` so failures stay local. Then you'll improve the boundary so every error it catches carries an `errorTag` — a typed label (`'ButtonClickError'`, `'TimerCountdownError'`, etc.) that Sentry can group on instead of the raw exception class.
+1. In `components/QuadrantErrorBoundary.tsx`, add ``errorTag: `${string}Error` `` to the props and pass it to `reportError` in `componentDidCatch`.
+2. In `utils/errorReporting.ts`, accept the same tag type and include the label with the reported error. Update the existing call in `components/GlobalErrorBoundary.tsx` to `reportError(error, "GlobalError")` so it still typechecks after adding the required parameter. Labels aid diagnosis; they do not guarantee Sentry issue grouping.
+3. In `pages/index.tsx`, wrap each quadrant in the provided custom class boundary, using `ButtonClickError`, `InputRenderError`, `TimerCountdownError`, and `ControlQuadrantError` respectively. Keep the global boundary as a last resort.
+4. Give Quadrant 3 a custom fallback with a restart button. The provided API is `fallback={(error, resetError) => (...)}`; invoke `resetError` from the button. It is not the `react-error-boundary` package API.
 
-> **This exercise must run in production build mode** (the runner does this for you). Next.js's dev overlay intercepts these errors before they reach the boundary — you'd never see the boundary fire in dev.
+## Verification — 10 minutes
 
-## 🗺 Files you'll work in
+- Increase Quadrant 4’s counter and remember its value.
+- Click Quadrant 1 three times: only that quadrant shows a fallback. Retry restores it and Quadrant 4 retains its count.
+- Type `crash` into Quadrant 2: only that quadrant fails. Retry restores a usable input.
+- Start Quadrant 3 and wait for zero: only the timer fails. Restart restores a five-second idle timer; start it again to verify recovery.
+- Click Quadrant 4’s Test Error: no boundary fallback appears. The browser reports the uncaught event-handler error, and the counter stays usable. This is intentional.
+- Verify error labels in the console. A configured Sentry project is optional for remote inspection.
+- Check that TypeScript rejects an `errorTag` without the `Error` suffix.
 
-- `pages/index.tsx` — the 2×2 grid. Wrap each `<Quadrant*>` here.
-- `components/QuadrantErrorBoundary.tsx` — already imports `react-error-boundary`. You'll add the `errorTag` prop + reporting wiring.
-- `utils/errorReporting.ts` — the helper that ships the tag into Sentry. Tighten its types.
-- `components/GlobalErrorBoundary.tsx` — already done, no edits. Reference for what *not* to do (it catches everything).
+## Discussion — 5 minutes
 
-## 📋 Your task
+Quadrant 1 changes state in a click handler but throws during rendering. Quadrant 2 throws during rendering. Quadrant 3 throws synchronously inside a React effect after the timer updates state; it does not throw in the timeout callback. Quadrant 4 throws directly in the event handler, outside the boundary’s coverage. Discuss handling event errors explicitly with try/catch and reporting or displaying an appropriate local message.
 
-1. **In `components/QuadrantErrorBoundary.tsx`**: add an `errorTag` prop to `ErrorBoundaryProps`. Use a TypeScript template literal type to force the tag to end with `'Error'` (e.g., `type ErrorTag = \`${string}Error\``). Wire `errorTag` into the `onError` handler that calls `errorReporting.ts`.
-2. **In `utils/errorReporting.ts`**: update the function signature so `errorTag` uses the same template literal type. Inside, decorate the error (or attach a Sentry tag) so the tag is sent with the exception report.
-3. **In `pages/index.tsx`**: import `QuadrantErrorBoundary` and wrap each of the four quadrants:
-   - `<Quadrant1 />` → `errorTag="ButtonClickError"`
-   - `<Quadrant2 />` → `errorTag="InputRenderError"`
-   - `<Quadrant3 />` → `errorTag="TimerCountdownError"`
-   - `<Quadrant4 />` → `errorTag="ControlQuadrantError"`
-4. **(Optional)** Provide a custom `FallbackComponent` for at least one quadrant so its fallback UI matches its purpose ("Timer crashed — restart?" beats a generic "Something went wrong").
-
-## ✅ You'll know you're done when
-
-- [ ] Click the button in Quadrant 1 three times — Quadrant 1 shows its fallback UI; Quadrants 2, 3, 4 still work and remain interactive.
-- [ ] Type "crash" in Quadrant 2's input — Quadrant 2 shows its fallback; the rest of the page is unaffected.
-- [ ] Start Quadrant 3's countdown and let it hit zero — Quadrant 3 shows its fallback; the rest stays alive.
-- [ ] Click Quadrant 4's "Test Error" button — Quadrant 4 shows its fallback; the rest stays alive.
-- [ ] In dev tools / Sentry, each captured error carries its tag (`ButtonClickError`, etc.), not just the underlying JS error name.
-- [ ] TypeScript rejects an `errorTag` that doesn't end in `Error` at the call site.
-- [ ] Running `pnpm solution 03` side-by-side shows the same behavior.
-
-## 💡 Hints (if stuck)
-
-- `react-error-boundary` exports `<ErrorBoundary FallbackComponent={...} onError={(error, info) => ...} onReset={...} />`. The `onError` callback is where you tag.
-- Template literal type: `type ErrorTag = \`${string}Error\`` — accepts any string ending in `"Error"`, rejects others at the TS level.
-- For Sentry tagging, `Sentry.withScope(scope => { scope.setTag('errorTag', errorTag); Sentry.captureException(error); })` keeps the tag scoped to this one event.
-- The fallback prop `resetErrorBoundary` lets users retry. Pass it to a button in your custom fallback if you want recovery.
-
-## 🌶 Stretch goals
-
-- Add a "telemetry" prop that takes any extra context (user id, route, feature flags) and forwards it to Sentry with the captured exception.
-- Wire one quadrant's fallback to *also* render a "report this" button that posts the error and a user comment to a feedback API.
-
-## 🔌 How to run
-
-```bash
-# Terminal 1 — mock API is optional for this exercise (the quadrants don't fetch)
-pnpm exercise 03
-```
-
-The runner builds the app and starts it in production mode on :3000. Dev overlay would mask the errors, so don't try `next dev` here.
+Resetting a failed boundary remounts its failed subtree; it does not preserve that subtree’s old local state. Healthy sibling state should remain intact. Loading and empty-data states are covered later in the query-criticality exercise.
