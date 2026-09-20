@@ -1,0 +1,21 @@
+{
+  "name": "nextjs-architecture-workshop",
+  "version": "1.0.0",
+  "description": "Workshop for building resilient Next.js applications",
+  "packageManager": "pnpm@10.12.4",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "exercise": "node scripts/run-exercise.js",
+    "solution": "node scripts/run-solution.js",
+    "mock-api": "node scripts/mock-api.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  }
+}
