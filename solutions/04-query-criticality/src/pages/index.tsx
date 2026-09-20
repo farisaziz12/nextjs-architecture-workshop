@@ -33,7 +33,7 @@ function formatDollarPrice(amount: string) {
 
 const QUANTITY = 1;
 
-export default function Home() {
+export default function Home({ initialAnalyticsUnavailable = false }: { initialAnalyticsUnavailable?: boolean }) {
   const theme = useMantineTheme();
   const router = useRouter();
 
@@ -44,7 +44,7 @@ export default function Home() {
     staleTime: 60_000,
     queryKey: ["transactions", QUANTITY],
     retryDelay: (attemptIndex) => 1000 * attemptIndex,
-    retry: 10,
+    retry: false,
     queryFn: async () => {
       return await apiFetcher({
         url: `/api/proxy/transactions?quantity=${QUANTITY}`,
@@ -66,7 +66,7 @@ export default function Home() {
     staleTime: 60_000,
     queryKey: ["analytics"],
     retryDelay: (attemptIndex) => 1000 * attemptIndex,
-    retry: 5,
+    retry: false,
     queryFn: async () => {
       return await apiFetcher({
         url: `/api/proxy/analytics`,
@@ -272,7 +272,7 @@ export default function Home() {
               <Text fw={600} size="lg">Analytics Dashboard</Text>
             </Group>
 
-            {analyticsError ? (
+            {analyticsError || (initialAnalyticsUnavailable && !analyticsData) ? (
               <Alert color="yellow" title="Analytics Unavailable" variant="light">
                 Unable to load analytics data. This is non-critical information.
               </Alert>
@@ -314,7 +314,7 @@ export default function Home() {
                   ))}
                 </Paper>
               </SimpleGrid>
-            ) : null}
+            ) : <Text>No analytics available yet.</Text>}
           </Paper>
         </Paper>
       </Container>
@@ -335,7 +335,7 @@ export const getServerSideProps = async () => {
   );
 
   // Optional prefetch - won't throw error if fails
-  await prefetch.optionalQuery(["analytics"], () =>
+  const analyticsResult = await prefetch.optionalQuery(["analytics"], () =>
     apiFetcher({
       url: `http://localhost:3000/api/proxy/analytics`,
       errorTag: "GetAnalyticsServerError",
@@ -347,6 +347,7 @@ export const getServerSideProps = async () => {
   return {
     props: {
       dehydratedState,
+      initialAnalyticsUnavailable: analyticsResult === null,
     },
   };
 };

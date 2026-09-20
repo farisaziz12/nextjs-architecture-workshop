@@ -1,3 +1,4 @@
+import { withTimeout } from "./timeout";
 import { captureException } from "@sentry/nextjs";
 import {
   dehydrate as reactQueryDehydrate,
@@ -18,10 +19,6 @@ type PrefetchError = {
 };
 
 export type PrefetchResult<TData> = PrefetchSuccess<TData> | PrefetchError;
-
-const timeout = (ms: number) =>
-  new Promise((resolve) => setTimeout(() => resolve(null), ms));
-
 
 /**
  * Provides basic prefetching mechanism
@@ -57,10 +54,7 @@ export const createPrefetch = (queryClient: QueryClient, timeoutDuration = 5000)
         ...options,
       });
 
-      const data = (await Promise.race([
-        fetchPromise,
-        timeout(timeoutDuration),
-      ])) as TData;
+      const data = (await withTimeout(fetchPromise, timeoutDuration)) as TData;
 
 
       return {

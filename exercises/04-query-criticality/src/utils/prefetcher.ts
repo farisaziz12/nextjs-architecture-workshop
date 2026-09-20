@@ -1,3 +1,4 @@
+import { withTimeout } from "./timeout";
 import { captureException } from "@sentry/nextjs";
 import {
   dehydrate as reactQueryDehydrate,
@@ -19,19 +20,12 @@ type PrefetchError = {
 
 export type PrefetchResult<TData> = PrefetchSuccess<TData> | PrefetchError;
 
-// 🦉 The `timeout` here RESOLVES with null after `ms` (not rejects). Combined with
-// Promise.race below, a timed-out fetch silently produces `data = null` — fine for
-// this exercise, but in production you'd usually want it to reject so the wrappers
-// can distinguish "slow upstream" from "upstream returned null".
-const timeout = (ms: number) =>
-  new Promise((resolve) => setTimeout(() => resolve(null), ms));
-
 /**
  * Critical vs. optional query helpers.
  *
  * @example
  * const prefetch = createPrefetch(queryClient)
- * // Throws to the error boundary if it fails:
+ * // Throws to the Pages Router error page during SSR if it fails:
  * await prefetch.criticalQuery('transactions', () => fetch(...))
  * // Returns null if it fails (caller renders without it):
  * const result = await prefetch.optionalQuery('analytics', () => fetch(...))
@@ -64,10 +58,7 @@ export const createPrefetch = (queryClient: QueryClient, timeoutDuration = 5000)
       ...options,
     });
 
-    const data = (await Promise.race([
-      fetchPromise,
-      timeout(timeoutDuration),
-    ])) as TData;
+    const data = (await withTimeout(fetchPromise, timeoutDuration)) as TData;
 
     return {
       type: "data",
@@ -76,7 +67,7 @@ export const createPrefetch = (queryClient: QueryClient, timeoutDuration = 5000)
   };
 
   /**
-   * Critical query: throws on failure so an error boundary upstream catches it.
+   * Critical query: throws on failure so the SSR caller can handle it or use the framework error page.
    * Use for data the page can't render meaningfully without.
    */
   // 🦉 This wrapper is already correctly shaped — it switches on `result.type`.

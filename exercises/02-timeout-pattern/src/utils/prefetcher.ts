@@ -29,6 +29,7 @@ export type PrefetchResult<TData> = PrefetchSuccess<TData> | PrefetchError;
 // a rejected promise is what makes the timeout look like a thrown error to the caller.
 // 💯 Stretch: pair this with an AbortController so the losing fetch is actually cancelled
 // instead of running to completion in the background.
+// Clear the deadline timer in a finally block when the operation settles.
 
 /**
  * Provides basic prefetching mechanism

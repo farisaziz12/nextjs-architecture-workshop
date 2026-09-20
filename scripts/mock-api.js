@@ -23,7 +23,9 @@ let settings = {
   timeout: false,
   malformedData: false,
   criticalEndpointFailure: false,  // New setting for critical endpoint
-  optionalEndpointFailure: false   // New setting for optional endpoint
+  optionalEndpointFailure: false,  // New setting for optional endpoint
+  optionalLatencyMs: 0,
+  optionalEndpointEmpty: false
 };
 
 // Mock data
@@ -123,7 +125,10 @@ app.get('/api/analytics', (req, res) => {
     return res.status(500).json({ error: 'Optional Endpoint Failure' });
   }
   
-  handleRequest(req, res, () => analyticsData);
+  const respond = () => handleRequest(req, res, () =>
+    settings.optionalEndpointEmpty ? null : analyticsData
+  );
+  setTimeout(respond, Math.max(0, Number(settings.optionalLatencyMs) || 0));
 });
 
 // Generic request handler with chaos options

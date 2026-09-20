@@ -32,7 +32,7 @@ function formatDollarPrice(amount: string) {
 
 const QUANTITY = 1;
 
-export default function Home() {
+export default function Home({ initialPrefetchError = null }: { initialPrefetchError?: string | null }) {
   const theme = useMantineTheme();
   
   const { data, isFetching, error, refetch } = useQuery<{
@@ -42,7 +42,7 @@ export default function Home() {
     staleTime: 60_000,
     queryKey: ["transactions", QUANTITY],
     retryDelay: (attemptIndex) => 1000 * attemptIndex,
-    retry: 10,
+    retry: false,
     queryFn: async () => {
       return await apiFetcher({
         url: `/api/proxy/transactions?quantity=${QUANTITY}`,
@@ -100,6 +100,11 @@ export default function Home() {
             </Button>
           </Group>
           <Divider mb="lg" />
+          {initialPrefetchError && !data && (
+            <Text role="status" c="orange" mb="md">
+              Initial data request failed: {initialPrefetchError}. Loading transactions again in the browser.
+            </Text>
+          )}
 
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
             {isFetching ? (
@@ -195,7 +200,7 @@ export const getServerSideProps = async () => {
   // 🦉 The mock API has a built-in ~2s delay on /api/proxy/transactions — see scripts/mock-api.js.
   const prefetchHandler = createPrefetch(queryClient, 500);
 
-  await prefetchHandler.prefetch(["transactions", QUANTITY], () =>
+  const initialResult = await prefetchHandler.prefetch(["transactions", QUANTITY], () =>
     apiFetcher({
       url: `http://localhost:3000/api/proxy/transactions?quantity=${QUANTITY}`,
     })
@@ -206,6 +211,7 @@ export const getServerSideProps = async () => {
   return {
     props: {
       dehydratedState,
+      initialPrefetchError: initialResult.type === "error" ? initialResult.error.message : null,
     },
   };
 };
