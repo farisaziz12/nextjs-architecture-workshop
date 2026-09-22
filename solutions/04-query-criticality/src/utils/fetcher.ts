@@ -10,12 +10,6 @@ type FetchErrorMeta = {
   };
 };
 
-const mockFeatureFlags = {
-    FEATURE_ONE: true,
-    FEATURE_TWO: false,
-    FEATURE_THREE: true,
-}
-
 export class FetchError extends Error {
   public readonly metaData: FetchErrorMeta;
   public readonly title: string;
@@ -36,11 +30,13 @@ export class FetchError extends Error {
 type ApiFetcher = {
   url: string;
   errorTag: `${string}Error`;
+  signal?: AbortSignal;
+  diagnostics?: { feature: string; release: string; analyticsEnabled: boolean };
 };
 
-export const apiFetcher = async ({ url, errorTag }: ApiFetcher) => {
+export const apiFetcher = async ({ url, errorTag, signal, diagnostics }: ApiFetcher) => {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
 
     const json = await response.json();
 
@@ -55,8 +51,18 @@ export const apiFetcher = async ({ url, errorTag }: ApiFetcher) => {
 
     return json;
   } catch (error) {
-    Sentry.setContext('Feature Flags', mockFeatureFlags)
-    Sentry.captureException(error);
+    // Disabling the feature is intentional cancellation, not a new incident.
+    if (!signal?.aborted) {
+      Sentry.withScope(scope => {
+        scope.setTag("errorTag", errorTag);
+        if (diagnostics) {
+          scope.setTag("feature", diagnostics.feature);
+          scope.setTag("demo_release", diagnostics.release);
+          scope.setContext("Feature Flags", { analyticsEnabled: diagnostics.analyticsEnabled });
+        }
+        Sentry.captureException(error);
+      });
+    }
 
     return Promise.reject(error);
   }

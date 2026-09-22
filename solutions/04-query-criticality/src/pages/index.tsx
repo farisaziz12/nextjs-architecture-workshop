@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Container,
   Grid,
@@ -16,7 +17,7 @@ import {
 } from "@mantine/core";
 import { StatsCollection, StatsRing, StatsTrend } from "@/components";
 import { IconCreditCard, IconRefresh, IconChartBar, IconInfoCircle, IconAlertTriangle } from "@tabler/icons-react";
-import { QueryClient, useQuery } from "@tanstack/react-query";
+import { QueryClient, useQueryClient, useQuery } from "@tanstack/react-query";
 import { TransactionDashboardData, AnalyticsData } from "@/types";
 import { apiFetcher } from "@/utils/fetcher";
 import { createPrefetch } from "@/utils/prefetcher";
@@ -33,7 +34,18 @@ function formatDollarPrice(amount: string) {
 
 const QUANTITY = 1;
 
-export default function Home({ initialAnalyticsUnavailable = false }: { initialAnalyticsUnavailable?: boolean }) {
+export default function Home({ initialAnalyticsUnavailable = false, demoMode = false }: { initialAnalyticsUnavailable?: boolean; demoMode?: boolean }) {
+  const queryClient = useQueryClient();
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
+  const [incident, setIncident] = useState<string | null>(null);
+  const demoRelease = "alicante-demo-v1";
+  const toggleAnalytics = async () => {
+    const next = !analyticsEnabled;
+    setAnalyticsEnabled(next);
+    // Stop in-flight client work and invalidate only analytics before restoring it.
+    await queryClient.cancelQueries({ queryKey: ["analytics"], exact: true });
+    if (next) await queryClient.invalidateQueries({ queryKey: ["analytics"], exact: true });
+  };
   const theme = useMantineTheme();
   const router = useRouter();
 
@@ -65,13 +77,22 @@ export default function Home({ initialAnalyticsUnavailable = false }: { initialA
   }>({
     staleTime: 60_000,
     queryKey: ["analytics"],
+    enabled: analyticsEnabled,
     retryDelay: (attemptIndex) => 1000 * attemptIndex,
     retry: false,
-    queryFn: async () => {
-      return await apiFetcher({
-        url: `/api/proxy/analytics`,
-        errorTag: "GetAnalyticsClientError",
-      });
+    queryFn: async ({ signal }) => {
+      try {
+        return await apiFetcher({
+          url: `/api/proxy/analytics`, signal,
+          errorTag: "GetAnalyticsClientError",
+          diagnostics: demoMode ? { feature: "analytics", release: demoRelease, analyticsEnabled } : undefined,
+        });
+      } catch (error) {
+        if (demoMode && !signal.aborted) {
+          setIncident(`GetAnalyticsClientError · feature=analytics · demo release=${demoRelease} · analyticsEnabled=${analyticsEnabled} · ${error instanceof Error ? error.message : "Request failed"}`);
+        }
+        throw error;
+      }
     },
   });
 
@@ -163,7 +184,8 @@ export default function Home({ initialAnalyticsUnavailable = false }: { initialA
 
             <Group>
               <Button
-                onClick={() => refetchAnalytics()}
+                disabled={!analyticsEnabled}
+                onClick={() => analyticsEnabled && refetchAnalytics()}
                 color="green"
                 radius="md"
                 leftSection={<IconRefresh size={16} />}
@@ -183,6 +205,17 @@ export default function Home({ initialAnalyticsUnavailable = false }: { initialA
             </Group>
           </Group>
           <Divider mb="lg" />
+          {demoMode && (
+            <Paper withBorder p="md" mb="lg">
+              <Text fw={700}>Release controls — local demonstration</Text>
+              <Text size="sm">This toggle affects this browser session only and resets on reload. Demo release: {demoRelease}.</Text>
+              <Button mt="sm" color={analyticsEnabled ? "orange" : "green"} onClick={toggleAnalytics}>
+                {analyticsEnabled ? "Disable analytics" : "Enable analytics"}
+              </Button>
+              <Text mt="sm" role="status">Analytics: {analyticsEnabled ? "enabled" : "disabled"}</Text>
+              {incident && <Text mt="sm">Last observed incident: {incident}</Text>}
+            </Paper>
+          )}
 
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
             {isFetching ? (
@@ -272,7 +305,9 @@ export default function Home({ initialAnalyticsUnavailable = false }: { initialA
               <Text fw={600} size="lg">Analytics Dashboard</Text>
             </Group>
 
-            {analyticsError || (initialAnalyticsUnavailable && !analyticsData) ? (
+            {!analyticsEnabled ? (
+              <Alert color="blue" title="Analytics temporarily disabled">Transactions remain available. Analytics requests are paused in this browser session.</Alert>
+            ) : analyticsError || (initialAnalyticsUnavailable && !analyticsData) ? (
               <Alert color="yellow" title="Analytics Unavailable" variant="light">
                 Unable to load analytics data. This is non-critical information.
               </Alert>
